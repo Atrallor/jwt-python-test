@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Identity & Auth example</title>
+
+  <!-- Google Fonts: Outfit & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- PrimeIcons CDN -->
+  <link rel="stylesheet" href="https://unpkg.com/primeicons/primeicons.css">
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+  <!-- Animated Mesh Background -->
+  <div class="bg-mesh">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+
+  <!-- Header -->
+  <header class="app-header">
+    <a href="#" class="brand" onclick="checkSavedSession(); return false;">
+      <div class="brand-icon">
+        <i class="pi pi-bolt"></i>
+      </div>
+      <div>
+        <div class="brand-name">Identity & Auth example</div>
+      </div>
+      <span class="brand-tag">JWT Core</span>
+    </a>
+
+    <div class="header-status">
+      <div class="status-dot" id="status-dot"></div>
+      <span id="status-text">Verificando API...</span>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-content">
+
+    <!-- ==========================================
+         1. LOGIN VIEW
+         ========================================== -->
+    <div id="login-view" class="auth-wrapper">
+      <div class="auth-header">
+        <h1>Iniciar Sesión</h1>
+        <p>Ingresa tus credenciales para acceder</p>
+      </div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label for="login-identifier">Correo Electrónico o Usuario</label>
+          <div class="input-container">
+            <i class="pi pi-user input-icon"></i>
+            <input type="text" id="login-identifier" placeholder="Ingrese su correo o usuario" required
+              autocomplete="username">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="pwd-actions-bar">
+            <label for="login-password">Contraseña</label>
+            <button type="button" class="btn-link-action" onclick="switchView('forgot')">¿Olvidaste tu
+              contraseña?</button>
+          </div>
+          <div class="input-container">
+            <i class="pi pi-lock input-icon"></i>
+            <input type="password" id="login-password" placeholder="••••••••••••" required
+              autocomplete="current-password">
+            <button type="button" class="input-btn-toggle" title="Mostrar/Ocultar contraseña">
+              <i class="pi pi-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" id="btn-login-submit" class="btn-primary">
+          <span>Ingresar a la Plataforma</span>
+          <i class="pi pi-arrow-right"></i>
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        ¿No tienes una cuenta?
+        <a href="#" onclick="switchView('register'); return false;">Crear cuenta nueva</a>
+      </div>
+    </div>
+
+
+    <!-- ==========================================
+         2. REGISTER VIEW (With Secure Password Generator)
+         ========================================== -->
+    <div id="register-view" class="auth-wrapper hidden">
+      <div class="auth-header">
+        <h1>Crear Cuenta</h1>
+        <p>Regístrate en Identity & Auth example de forma segura</p>
+      </div>
+
+      <form id="register-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="reg-name">Nombre</label>
+            <div class="input-container">
+              <i class="pi pi-user input-icon"></i>
+              <input type="text" id="reg-name" placeholder="Nombre" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="reg-lastname">Apellido</label>
+            <div class="input-container">
+              <i class="pi pi-id-card input-icon"></i>
+              <input type="text" id="reg-lastname" placeholder="Apellido" required>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="reg-username">Nombre de Usuario</label>
+          <div class="input-container">
+            <i class="pi pi-at input-icon"></i>
+            <input type="text" id="reg-username" placeholder="Usuario123" required autocomplete="username">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="reg-email">Correo Electrónico</label>
+          <div class="input-container">
+            <i class="pi pi-envelope input-icon"></i>
+            <input type="email" id="reg-email" placeholder="correo@ejemplo.com" required autocomplete="email">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="pwd-actions-bar">
+            <label for="reg-password">Contraseña</label>
+            <button type="button" class="btn-link-action" id="btn-toggle-generator"
+              onclick="toggleGenerator('generator-box')">
+              <i class="pi pi-sparkles"></i>
+              <span>Generar Contraseña Segura</span>
+            </button>
+          </div>
+
+          <!-- Password Generator Recommendation Box (Hidden by default) -->
+          <div id="generator-box" class="generator-box">
+            <div
+              style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.35rem; display: flex; justify-content: space-between;">
+              <span>Sugerencia Segura:</span>
+              <span
+                style="color: var(--accent-cyan); cursor: pointer; display: inline-flex; align-items: center; gap: 0.25rem;"
+                onclick="suggestNewPassword()">
+                <i class="pi pi-sync"></i> Regenerar
+              </span>
+            </div>
+            <div class="generator-display" id="gen-password-display">
+              A9#kL8$vM2!xP5@q
+            </div>
+            <div class="generator-controls">
+              <button type="button" class="btn-mini primary" onclick="applyGeneratedPassword('reg-password')">
+                <i class="pi pi-check"></i>
+                <span>Usar esta contraseña</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="input-container">
+            <i class="pi pi-lock input-icon"></i>
+            <input type="password" id="reg-password" placeholder="••••••••••••" required autocomplete="new-password">
+            <button type="button" class="input-btn-toggle" title="Mostrar/Ocultar contraseña">
+              <i class="pi pi-eye"></i>
+            </button>
+          </div>
+
+          <!-- Live Password Strength Meter -->
+          <div class="pwd-strength-container">
+            <div class="pwd-strength-bar">
+              <div class="pwd-strength-fill" id="reg-pwd-fill"></div>
+            </div>
+            <div class="pwd-strength-text">
+              <span id="reg-pwd-label">Fuerza: Vacía</span>
+              <span>Min. 8 caracteres</span>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" id="btn-reg-submit" class="btn-primary">
+          <span>Registrarse Ahora</span>
+          <i class="pi pi-arrow-right"></i>
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        ¿Ya tienes cuenta?
+        <a href="#" onclick="switchView('login'); return false;">Inicia sesión aquí</a>
+      </div>
+    </div>
+
+
+    <!-- ==========================================
+         3. FORGOT / RESET PASSWORD VIEW (2 STEPS)
+         ========================================== -->
+    <div id="forgot-view" class="auth-wrapper hidden">
+      <div class="auth-header">
+        <h1>Recuperar Acceso</h1>
+        <p>Restablece tu contraseña mediante código de seguridad</p>
+      </div>
+
+      <!-- Step 1: Request Code -->
+      <div id="step-1-request">
+        <form id="forgot-request-form">
+          <div class="form-group">
+            <label for="forgot-email">Correo Electrónico o Usuario</label>
+            <div class="input-container">
+              <i class="pi pi-envelope input-icon"></i>
+              <input type="text" id="forgot-email" placeholder="usuario@ejemplo.com" required>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">
+              Te enviaremos un código numérico de 6 dígitos con vigencia de 15 minutos.
+            </p>
+          </div>
+
+          <button type="submit" id="btn-forgot-req-submit" class="btn-primary">
+            <span>Enviar Código de Verificación</span>
+            <i class="pi pi-send"></i>
+          </button>
+        </form>
+      </div>
+
+      <!-- Step 2: Confirm Code & Set New Password -->
+      <div id="step-2-confirm" class="hidden">
+        <form id="forgot-confirm-form">
+          <input type="hidden" id="reset-hidden-email">
+
+          <div
+            style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.25); padding: 0.75rem 1rem; border-radius: var(--radius-sm); margin-bottom: 1.25rem; font-size: 0.85rem;">
+            Código enviado a: <strong id="confirm-email-display" class="text-cyan"></strong>
+          </div>
+
+          <div class="form-group">
+            <label for="reset-code">Código de Verificación (6 dígitos)</label>
+            <div class="input-container">
+              <i class="pi pi-key input-icon"></i>
+              <input type="text" id="reset-code" placeholder="123456" maxlength="6"
+                style="letter-spacing: 0.2em; font-family: 'JetBrains Mono', monospace; font-size: 1.1rem;" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="pwd-actions-bar">
+              <label for="reset-new-password">Nueva Contraseña</label>
+              <button type="button" class="btn-link-action"
+                onclick="const p = generateSecurePassword(14); document.getElementById('reset-new-password').value = p; showToast('Contraseña aleatoria generada', 'info');">
+                <i class="pi pi-sparkles"></i> Generar Segura
+              </button>
+            </div>
+            <div class="input-container">
+              <i class="pi pi-lock input-icon"></i>
+              <input type="password" id="reset-new-password" placeholder="••••••••••••" required>
+              <button type="button" class="input-btn-toggle" title="Mostrar/Ocultar contraseña">
+                <i class="pi pi-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" id="btn-forgot-confirm-submit" class="btn-primary">
+            <span>Restablecer y Guardar</span>
+            <i class="pi pi-check"></i>
+          </button>
+        </form>
+      </div>
+
+      <div class="auth-footer">
+        <a href="#" onclick="switchView('login'); return false;"
+          style="display: inline-flex; align-items: center; gap: 0.35rem;">
+          <i class="pi pi-arrow-left"></i>
+          <span>Volver al inicio de sesión</span>
+        </a>
+      </div>
+    </div>
+
+
+    <!-- ==========================================
+         4. DASHBOARD / SESSION ACTIVE VIEW
+         ========================================== -->
+    <div id="dashboard-view" class="dashboard-wrapper hidden">
+
+      <!-- Top Bar Profile Header -->
+      <div class="dashboard-topbar">
+        <div class="user-greeting">
+          <div class="avatar-badge" id="user-avatar">US</div>
+          <div class="greeting-text">
+            <h2>¡Hola, <span id="user-fullname" class="text-cyan">Usuario</span>!</h2>
+            <p id="user-welcome-email">usuario@ejemplo.com</p>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; align-items: center;">
+          <span class="badge badge-timer" id="session-badge-timer">
+            <i class="pi pi-clock" style="font-size: 0.8rem;"></i>
+            <span id="timer-badge-text">15:00</span>
+          </span>
+          <button class="btn-secondary btn-danger" onclick="logout(false)">
+            <span>Cerrar Sesión</span>
+            <i class="pi pi-sign-out"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Dashboard Grid: 2 Cards (User Info & Token Details) -->
+      <div class="dashboard-grid">
+
+        <!-- CARD 1: User Information from Token Payload -->
+        <div class="dash-card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="pi pi-user text-cyan"></i>
+              <span>Información del Usuario</span>
+            </div>
+            <span class="badge badge-success">
+              <i class="pi pi-check-circle" style="font-size: 0.75rem;"></i>
+              <span>Token Válido</span>
+            </span>
+          </div>
+
+          <div class="info-list">
+            <div class="info-item">
+              <span class="info-label">Identificador (UUID)</span>
+              <span class="info-value uuid-val" id="info-id" title="Click para copiar"
+                onclick="copyToClipboard(this.textContent)">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Nombre de Usuario</span>
+              <span class="info-value text-cyan" id="info-username">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Nombre</span>
+              <span class="info-value" id="info-name">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Apellido</span>
+              <span class="info-value" id="info-lastname">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Correo Electrónico</span>
+              <span class="info-value" id="info-email">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Hora de Expiración</span>
+              <span class="info-value text-emerald" id="info-expires">-</span>
+            </div>
+          </div>
+
+          <!-- Session Countdown Progress Box -->
+          <div class="countdown-box">
+            <div
+              style="font-size: 0.8rem; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
+              <i class="pi pi-clock"></i>
+              <span>Tiempo restante de sesión (15 min)</span>
+            </div>
+            <div class="countdown-digits" id="countdown-digits">15:00</div>
+            <div class="countdown-progress">
+              <div class="countdown-fill" id="countdown-fill"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 2: Token Details & Inspector -->
+        <div class="dash-card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="pi pi-shield text-cyan"></i>
+              <span>Token JWT Generado</span>
+            </div>
+            <button class="btn-mini" onclick="copyRawToken()">
+              <i class="pi pi-copy"></i>
+              <span>Copiar JWT</span>
+            </button>
+          </div>
+
+          <div class="token-container">
+            <div>
+              <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.4rem;">
+                JWT Compacto (Header . Payload . Signature):
+              </div>
+              <div class="token-raw-box">
+                <div class="token-raw-text" id="raw-jwt-display">
+                  ...
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.4rem;">
+                Contenido Decodificado (Sin Contraseña):
+              </div>
+              <pre class="json-viewer" id="jwt-json-viewer"></pre>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
