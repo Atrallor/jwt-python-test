@@ -46,10 +46,10 @@ def send_reset_code_email(to_email: str, code: str, username: str = "") -> tuple
     smtp_password = os.getenv("SMTP_PASSWORD")
     smtp_from = os.getenv("SMTP_FROM", smtp_user or "no-reply@authapp.com")
 
-    subject = "Codigo de recuperacion de contrasena"
+    subject = "Codigo de recuperacion de contraseña"
     body_text = f"""Hola {username or 'usuario'},
 
-Has solicitado restablecer tu contrasena.
+Has solicitado restablecer tu contraseña.
 Tu codigo de verificacion es: {code}
 
 Este codigo es valido por 15 minutos. Si no solicitaste este cambio, puedes ignorar este mensaje.
