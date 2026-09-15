@@ -54,19 +54,6 @@ Tu codigo de verificacion es: {code}
 
 Este codigo es valido por 15 minutos. Si no solicitaste este cambio, puedes ignorar este mensaje.
 """
-
-    # Siempre mostrar en consola para facilitar desarrollo y depuración
-    print("\n" + "=" * 60)
-    print("[SERVICIO DE CORREO - RESET CODE]")
-    print(f"Para: {to_email}")
-    print(f"Asunto: {subject}")
-    print(f"Codigo de recuperacion: {code}")
-    if smtp_host and smtp_user:
-        print(f"SMTP: {smtp_host}:{smtp_port} (Usuario: {smtp_user})")
-    else:
-        print("SMTP: No configurado o faltan variables en .env (Simulado en consola)")
-    print("=" * 60 + "\n")
-
     # Si hay configuración SMTP completa, intentar envío real
     if smtp_host and smtp_user and smtp_password:
         try:
@@ -87,8 +74,6 @@ Este codigo es valido por 15 minutos. Si no solicitaste este cambio, puedes igno
                     server.ehlo()
                     server.login(smtp_user, smtp_password)
                     server.send_message(msg)
-
-            print(f"[OK] Correo enviado exitosamente via SMTP a {to_email}")
             return True, "Correo enviado exitosamente"
         except smtplib.SMTPAuthenticationError as e:
             error_msg = f"Error de autenticacion SMTP en {smtp_host}. Verifica si tu cuenta requiere una 'Contraseña de Aplicacion' de 16 caracteres de Google (App Password): {e}"

@@ -5,7 +5,7 @@ import jwt
 # Clave secreta para firmar tokens JWT (se puede sobreescribir mediante variable de entorno)
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "jwt_secret_super_secure_key_2026")
 ALGORITHM = "HS256"
-EXPIRATION_MINUTES = 15
+EXPIRATION_MINUTES = 1
 
 def generate_token(user_payload: dict, expires_in_minutes: int = EXPIRATION_MINUTES) -> str:
     """

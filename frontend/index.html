@@ -224,7 +224,7 @@
               <input type="text" id="forgot-email" placeholder="usuario@ejemplo.com" required>
             </div>
             <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">
-              Te enviaremos un código numérico de 6 dígitos con vigencia de 15 minutos.
+              Te enviaremos un código numérico de 6 dígitos con vigencia de 1 minuto.
             </p>
           </div>
 
@@ -306,7 +306,7 @@
         <div style="display: flex; gap: 0.75rem; align-items: center;">
           <span class="badge badge-timer" id="session-badge-timer">
             <i class="pi pi-clock" style="font-size: 0.8rem;"></i>
-            <span id="timer-badge-text">15:00</span>
+            <span id="timer-badge-text">1:00</span>
           </span>
           <button class="btn-secondary btn-danger" onclick="logout(false)">
             <span>Cerrar Sesión</span>
@@ -364,9 +364,9 @@
             <div
               style="font-size: 0.8rem; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
               <i class="pi pi-clock"></i>
-              <span>Tiempo restante de sesión (15 min)</span>
+              <span>Tiempo restante de sesión (1 min)</span>
             </div>
-            <div class="countdown-digits" id="countdown-digits">15:00</div>
+            <div class="countdown-digits" id="countdown-digits">1:00</div>
             <div class="countdown-progress">
               <div class="countdown-fill" id="countdown-fill"></div>
             </div>

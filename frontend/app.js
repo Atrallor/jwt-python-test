@@ -1,8 +1,8 @@
 // ==========================================
 // Configuración de API
 // ==========================================
-const API_BASE = window.location.protocol.startsWith('http') 
-  ? `${window.location.origin}/api` 
+const API_BASE = window.location.protocol.startsWith('http')
+  ? `${window.location.origin}/api`
   : 'http://localhost:5000/api';
 
 // Estado global de la aplicación
@@ -156,7 +156,7 @@ function applyGeneratedPassword(targetInputId, boxId = 'generator-box') {
     targetInput.value = password;
     targetInput.dispatchEvent(new Event('input'));
     showToast('Contraseña segura aplicada al formulario', 'success');
-    
+
     const box = document.getElementById(boxId);
     if (box) box.classList.remove('active');
   }
@@ -172,8 +172,8 @@ function parseJwt(token) {
 
     const base64Url = parts[1];
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
     }).join(''));
 
     return JSON.parse(jsonPayload);
@@ -195,11 +195,11 @@ function parseJwtHeader(token) {
 }
 
 // ==========================================
-// Manejo de Sesión y Cuenta Regresiva (15 min)
+// Manejo de Sesión y Cuenta Regresiva
 // ==========================================
 function startSession(token, user) {
   const payload = parseJwt(token);
-  const expTimestamp = payload && payload.exp ? payload.exp * 1000 : Date.now() + 15 * 60 * 1000;
+  const expTimestamp = payload && payload.exp ? payload.exp * 1000 : Date.now() + 1 * 60 * 1000;
 
   currentSession = {
     token,
@@ -227,7 +227,7 @@ function checkSavedSession() {
         startSession(parsed.token, parsed.user);
         return;
       }
-    } catch {}
+    } catch { }
     localStorage.removeItem('auth_session');
   }
   switchView('login');
@@ -242,7 +242,7 @@ function logout(isExpired = false) {
   switchView('login');
 
   if (isExpired) {
-    showToast('Tu sesión ha expirado (15 minutos). Por favor inicia sesión nuevamente.', 'error');
+    showToast('Tu sesión ha expirado (1 minuto). Por favor inicia sesión nuevamente.', 'error');
   } else {
     showToast('Sesión cerrada correctamente', 'info');
   }
@@ -256,7 +256,7 @@ function startCountdown(expiresAt) {
   const digitsEl = document.getElementById('countdown-digits');
   const fillEl = document.getElementById('countdown-fill');
   const badgeEl = document.getElementById('session-badge-timer');
-  const totalDuration = 15 * 60 * 1000; // 15 minutos
+  const totalDuration = 1 * 60 * 1000;
 
   function updateTimer() {
     const now = Date.now();
