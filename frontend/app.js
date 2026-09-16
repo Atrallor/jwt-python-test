@@ -1,5 +1,5 @@
 // ==========================================
-// Configuración de API & Criptografía
+// Configuración de API
 // ==========================================
 const API_BASE = window.location.protocol.startsWith('http')
   ? `${window.location.origin}/api`
@@ -17,32 +17,15 @@ let currentSession = {
 // Inicialización
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-  setupCryptoActivityMonitor();
   checkSavedSession();
   setupEventListeners();
   checkApiHealth();
 });
 
-// Registrar monitor de actividad criptográfica en tiempo real
-function setupCryptoActivityMonitor() {
-  window.onCryptoActivity = function(activity) {
-    const activityEl = document.getElementById('crypto-last-activity');
-    if (!activityEl) return;
-
-    if (activity.type === 'REQUEST_ENCRYPTED') {
-      activityEl.innerHTML = `<span style="color: #38bdf8;">📤 ${activity.method}</span>: ${activity.plainLength}B texto plano &rarr; <span style="color: #34d399;">${activity.cipherLength}B AES-GCM</span>`;
-    } else if (activity.type === 'RESPONSE_DECRYPTED') {
-      activityEl.innerHTML = `<span style="color: #34d399;">📥 Resp HTTP ${activity.status}</span>: ${activity.cipherLength}B AES-GCM &rarr; <span style="color: #a5b4fc;">JSON Descifrado</span>`;
-    }
-  };
-}
-
-// Comprobar estado del backend y del módulo criptográfico
+// Comprobar estado del backend
 async function checkApiHealth() {
   const statusDot = document.getElementById('status-dot');
   const statusText = document.getElementById('status-text');
-  const cryptoBadge = document.getElementById('crypto-badge');
-
   try {
     const res = await fetch(`${API_BASE.replace('/api', '')}/health`);
     if (res.ok) {
@@ -52,19 +35,6 @@ async function checkApiHealth() {
     } else {
       throw new Error();
     }
-
-    // Verificar capacidades criptográficas del backend
-    try {
-      const cryptoRes = await fetch(`${API_BASE}/crypto/info`);
-      if (cryptoRes.ok) {
-        const cryptoData = await cryptoRes.json();
-        if (cryptoBadge) {
-          cryptoBadge.title = `Algoritmo: ${cryptoData.payload_encryption.algorithm} (${cryptoData.payload_encryption.key_size_bits}-bit)`;
-          cryptoBadge.style.display = 'inline-flex';
-        }
-      }
-    } catch { }
-
   } catch {
     statusDot.style.backgroundColor = 'var(--accent-rose)';
     statusDot.style.boxShadow = '0 0 10px var(--accent-rose)';
@@ -95,8 +65,6 @@ function switchView(viewName) {
 // ==========================================
 function showToast(message, type = 'info') {
   const container = document.getElementById('toast-container');
-  if (!container) return;
-
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
 
@@ -141,6 +109,7 @@ function generateSecurePassword(length = 16) {
     pwd += all[Math.floor(Math.random() * all.length)];
   }
 
+  // Shuffle
   return pwd.split('').sort(() => 0.5 - Math.random()).join('');
 }
 
@@ -194,7 +163,7 @@ function applyGeneratedPassword(targetInputId, boxId = 'generator-box') {
 }
 
 // ==========================================
-// Decodificador de Token JWT y Claims Cifrados
+// Decodificador de Token JWT (Cliente)
 // ==========================================
 function parseJwt(token) {
   try {
@@ -228,29 +197,18 @@ function parseJwtHeader(token) {
 // ==========================================
 // Manejo de Sesión y Cuenta Regresiva
 // ==========================================
-async function startSession(token, user) {
+function startSession(token, user) {
   const payload = parseJwt(token);
   const expTimestamp = payload && payload.exp ? payload.exp * 1000 : Date.now() + 1 * 60 * 1000;
 
-  // Si no nos pasaron el objeto user explícito pero el payload contiene enc_data
-  let finalUser = user;
-  if (!finalUser && payload && payload.enc_data) {
-    try {
-      finalUser = await CryptoEngine.decryptPayload(payload.enc_data);
-    } catch {
-      finalUser = payload;
-    }
-  }
-
   currentSession = {
     token,
-    user: finalUser || payload || {},
+    user: user || payload,
     expiresAt: expTimestamp
   };
 
   localStorage.setItem('auth_session', JSON.stringify({
     token,
-    user: currentSession.user,
     expiresAt: expTimestamp
   }));
 
@@ -324,8 +282,8 @@ function startCountdown(expiresAt) {
     const percentage = Math.max(0, Math.min(100, (remaining / totalDuration) * 100));
     if (fillEl) fillEl.style.width = `${percentage}%`;
 
-    // Cambiar color cuando falten menos de 20 segundos
-    if (remaining < 20 * 1000) {
+    // Cambiar color cuando falten menos de 2 minutos
+    if (remaining < 2 * 60 * 1000) {
       if (fillEl) fillEl.style.background = 'var(--accent-rose)';
       if (digitsEl) {
         digitsEl.style.background = 'var(--accent-rose)';
@@ -339,11 +297,11 @@ function startCountdown(expiresAt) {
 }
 
 // ==========================================
-// Renderizar Panel / Dashboard Criptográfico
+// Renderizar Panel / Dashboard
 // ==========================================
-async function renderDashboard() {
+function renderDashboard() {
   const { token, user, expiresAt } = currentSession;
-  const payload = parseJwt(token) || {};
+  const payload = parseJwt(token);
   const header = parseJwtHeader(token);
 
   // Avatar e iniciales
@@ -362,36 +320,29 @@ async function renderDashboard() {
   const expDate = new Date(expiresAt);
   document.getElementById('info-expires').textContent = expDate.toLocaleTimeString();
 
-  // Card 2: Token Details & Crypto breakdown
+  // Card 2: Token Details
   document.getElementById('raw-jwt-display').textContent = token;
 
-  // Si el token tiene claims cifrados ('enc_data'), descifrarlos para la vista
-  let decryptedClaims = user;
-  if (payload.enc_data) {
-    try {
-      decryptedClaims = await CryptoEngine.decryptPayload(payload.enc_data);
-    } catch (e) {
-      console.warn("No se pudo descifrar enc_data del token en el cliente:", e);
-    }
-  }
-
+  // JSON viewer con formato bonito
   const tokenBreakdown = {
-    "1. Header (Integrity Algorithm)": header,
-    "2. Encrypted Token Payload": {
-      "enc_data": payload.enc_data || "[UNENCRYPTED_LEGACY_PAYLOAD]",
-      "encryption_algorithm": payload.enc || "AES-256-GCM",
-      "issued_at (iat)": payload.iat ? new Date(payload.iat * 1000).toISOString() : undefined,
-      "expires_at (exp)": payload.exp ? new Date(payload.exp * 1000).toISOString() : undefined
+    header: header,
+    payload: {
+      id: payload.id,
+      email: payload.email,
+      username: payload.username,
+      name: payload.name,
+      lastname: payload.lastname,
+      iat: payload.iat ? new Date(payload.iat * 1000).toISOString() : undefined,
+      exp: payload.exp ? new Date(payload.exp * 1000).toISOString() : undefined
     },
-    "3. Decrypted Protected Claims (Identity)": decryptedClaims,
-    "4. Signature Verification": "[VERIFIED_HS256_MAC_SIGNATURE]"
+    signature: "[VERIFIED_HS256_SIGNATURE]"
   };
 
   document.getElementById('jwt-json-viewer').textContent = JSON.stringify(tokenBreakdown, null, 2);
 }
 
 // ==========================================
-// Event Listeners y Formularios E2EE
+// Event Listeners y Formularios
 // ==========================================
 function setupEventListeners() {
   // 1. Toggle Password Visibility
@@ -437,7 +388,7 @@ function setupEventListeners() {
     });
   }
 
-  // 3. Formulario de Login (E2E AES-256-GCM Encrypted)
+  // 3. Formulario de Login
   const loginForm = document.getElementById('login-form');
   if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
@@ -448,15 +399,16 @@ function setupEventListeners() {
 
       setBtnLoading(btn, true);
       try {
-        const res = await CryptoEngine.secureFetch(`${API_BASE}/login`, {
+        const res = await fetch(`${API_BASE}/login`, {
           method: 'POST',
-          body: { email: emailOrUser, password }
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: emailOrUser, password })
         });
 
-        const data = res.data;
+        const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Credenciales incorrectas');
 
-        showToast('¡Bienvenido! Sesión iniciada (Cifrado E2EE)', 'success');
+        showToast('¡Bienvenido! Sesión iniciada', 'success');
         startSession(data.token, data.user);
       } catch (err) {
         showToast(err.message, 'error');
@@ -466,7 +418,7 @@ function setupEventListeners() {
     });
   }
 
-  // 4. Formulario de Registro (E2E AES-256-GCM Encrypted)
+  // 4. Formulario de Registro
   const regForm = document.getElementById('register-form');
   if (regForm) {
     regForm.addEventListener('submit', async (e) => {
@@ -480,15 +432,16 @@ function setupEventListeners() {
 
       setBtnLoading(btn, true);
       try {
-        const res = await CryptoEngine.secureFetch(`${API_BASE}/register`, {
+        const res = await fetch(`${API_BASE}/register`, {
           method: 'POST',
-          body: { name, lastname, username, email, password }
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, lastname, username, email, password })
         });
 
-        const data = res.data;
+        const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error al registrar usuario');
 
-        showToast('¡Cuenta creada con cifrado de datos! Ahora puedes iniciar sesión', 'success');
+        showToast('¡Cuenta creada exitosamente! Ahora puedes iniciar sesión', 'success');
         regForm.reset();
         switchView('login');
       } catch (err) {
@@ -499,7 +452,7 @@ function setupEventListeners() {
     });
   }
 
-  // 5. Paso 1 de Olvidé mi Contraseña: Solicitar Código (E2E Encrypted)
+  // 5. Paso 1 de Olvidé mi Contraseña: Solicitar Código
   const forgotReqForm = document.getElementById('forgot-request-form');
   if (forgotReqForm) {
     forgotReqForm.addEventListener('submit', async (e) => {
@@ -509,12 +462,13 @@ function setupEventListeners() {
 
       setBtnLoading(btn, true);
       try {
-        const res = await CryptoEngine.secureFetch(`${API_BASE}/request-reset-code`, {
+        const res = await fetch(`${API_BASE}/request-reset-code`, {
           method: 'POST',
-          body: { email: identifier }
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: identifier })
         });
 
-        const data = res.data;
+        const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error al solicitar código');
 
         if (data.warning) {
@@ -534,7 +488,7 @@ function setupEventListeners() {
     });
   }
 
-  // 6. Paso 2 de Olvidé mi Contraseña: Confirmar Código y Nueva Contraseña (E2E Encrypted)
+  // 6. Paso 2 de Olvidé mi Contraseña: Confirmar Código y Nueva Contraseña
   const forgotConfirmForm = document.getElementById('forgot-confirm-form');
   if (forgotConfirmForm) {
     forgotConfirmForm.addEventListener('submit', async (e) => {
@@ -546,15 +500,16 @@ function setupEventListeners() {
 
       setBtnLoading(btn, true);
       try {
-        const res = await CryptoEngine.secureFetch(`${API_BASE}/reset-password`, {
+        const res = await fetch(`${API_BASE}/reset-password`, {
           method: 'POST',
-          body: { email, code, new_password: newPassword }
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, code, new_password: newPassword })
         });
 
-        const data = res.data;
+        const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error al restablecer contraseña');
 
-        showToast('¡Contraseña restablecida exitosamente!', 'success');
+        showToast('¡Contraseña restablecida con éxito!', 'success');
         forgotConfirmForm.reset();
         document.getElementById('step-2-confirm').classList.add('hidden');
         document.getElementById('step-1-request').classList.remove('hidden');
@@ -581,7 +536,7 @@ function copyToClipboard(text, message = 'Copiado al portapapeles') {
 
 function copyRawToken() {
   if (currentSession.token) {
-    copyToClipboard(currentSession.token, 'Token JWT copiado al portapapeles');
+    copyToClipboard(currentSession.token, 'Token JWT copiado');
   }
 }
 
@@ -590,7 +545,7 @@ function setBtnLoading(btn, isLoading) {
   if (isLoading) {
     btn.disabled = true;
     btn.dataset.originalText = btn.innerHTML;
-    btn.innerHTML = '<span class="spinner"></span> Procesando seguro...';
+    btn.innerHTML = '<span class="spinner"></span> Procesando...';
   } else {
     btn.disabled = false;
     btn.innerHTML = btn.dataset.originalText || 'Continuar';

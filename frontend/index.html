@@ -40,15 +40,9 @@
       <span class="brand-tag">JWT Core</span>
     </a>
 
-    <div style="display: flex; align-items: center; gap: 1rem;">
-      <div class="crypto-badge" id="crypto-badge" title="Cifrado AES-256-GCM extremo a extremo activo">
-        <i class="pi pi-shield"></i>
-        <span>E2E AES-256-GCM</span>
-      </div>
-      <div class="header-status">
-        <div class="status-dot" id="status-dot"></div>
-        <span id="status-text">Verificando API...</span>
-      </div>
+    <div class="header-status">
+      <div class="status-dot" id="status-dot"></div>
+      <span id="status-text">Verificando API...</span>
     </div>
   </header>
 
@@ -374,27 +368,28 @@
             </div>
             <div class="countdown-digits" id="countdown-digits">1:00</div>
             <div class="countdown-progress">
-                 <!-- CARD 2: Token Details & Cryptographic Inspector -->
+              <div class="countdown-fill" id="countdown-fill"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 2: Token Details & Inspector -->
         <div class="dash-card">
           <div class="card-header">
             <div class="card-title">
               <i class="pi pi-shield text-cyan"></i>
-              <span>Token JWT Cifrado (AES-256-GCM)</span>
+              <span>Token JWT Generado</span>
             </div>
-            <div style="display: flex; gap: 0.5rem; align-items: center;">
-              <span class="crypto-card-tag">Claims Ocultos</span>
-              <button class="btn-mini" onclick="copyRawToken()">
-                <i class="pi pi-copy"></i>
-                <span>Copiar JWT</span>
-              </button>
-            </div>
+            <button class="btn-mini" onclick="copyRawToken()">
+              <i class="pi pi-copy"></i>
+              <span>Copiar JWT</span>
+            </button>
           </div>
 
           <div class="token-container">
             <div>
-              <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.4rem; display: flex; justify-content: space-between;">
-                <span>Token JWT Compacto (Header . Encrypted Claims . Signature):</span>
-                <span style="color: var(--accent-cyan); font-size: 0.75rem;">Firma: HS256</span>
+              <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.4rem;">
+                JWT Compacto (Header . Payload . Signature):
               </div>
               <div class="token-raw-box">
                 <div class="token-raw-text" id="raw-jwt-display">
@@ -404,27 +399,10 @@
             </div>
 
             <div>
-              <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.4rem; display: flex; justify-content: space-between;">
-                <span>Estructura del Token (Claims Cifrados):</span>
-                <span style="color: var(--accent-emerald); font-size: 0.75rem;">Cifrado: AES-256-GCM (128-bit Tag)</span>
+              <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.4rem;">
+                Contenido Decodificado (Sin Contraseña):
               </div>
               <pre class="json-viewer" id="jwt-json-viewer"></pre>
-            </div>
-
-            <!-- Live E2E Security Activity -->
-            <div class="crypto-log-box" id="crypto-activity-box">
-              <div class="crypto-log-item">
-                <span style="color: var(--text-primary); font-weight: 600;"><i class="pi pi-lock text-cyan"></i> E2E Transport:</span>
-                <span style="color: var(--accent-emerald);">Peticiones y Respuestas Cifradas</span>
-              </div>
-              <div class="crypto-log-item">
-                <span>Algoritmo:</span>
-                <span style="color: #38bdf8;">AES-256-GCM (96-bit IV, 128-bit Tag)</span>
-              </div>
-              <div class="crypto-log-item">
-                <span>Última Actividad API:</span>
-                <span id="crypto-last-activity" style="color: #cbd5e1;">Petición cifrada exitosa</span>
-              </div>
             </div>
           </div>
         </div>
@@ -438,8 +416,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container" class="toast-container"></div>
 
-  <!-- Scripts: Crypto Engine first, then App logic -->
-  <script src="crypto.js"></script>
   <script src="app.js"></script>
 </body>
 
