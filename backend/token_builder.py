@@ -3,7 +3,7 @@ import datetime
 import jwt
 
 # Clave secreta para firmar tokens JWT (se puede sobreescribir mediante variable de entorno)
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "jwt_secret_super_secure_key_2026")
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 ALGORITHM = "HS256"
 EXPIRATION_MINUTES = 1
 
