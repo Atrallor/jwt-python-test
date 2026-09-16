@@ -116,8 +116,7 @@ def login():
 
         return jsonify({
             "message": "Inicio de sesión exitoso",
-            "token": token,
-            "user": user_info
+            "token": token
         }), 200
 
     except Exception as e:

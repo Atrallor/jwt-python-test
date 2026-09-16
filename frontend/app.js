@@ -209,7 +209,6 @@ function startSession(token, user) {
 
   localStorage.setItem('auth_session', JSON.stringify({
     token,
-    user: currentSession.user,
     expiresAt: expTimestamp
   }));
 
