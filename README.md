@@ -1,6 +1,27 @@
-# Backend de Autenticación con SQLite y JWT
+# Backend de Autenticación con SQLite, JWT Cifrado y Cifrado E2EE de Payloads
 
-Backend en Python construido con **Flask**, **SQLAlchemy** (ORM con SQLite), **PyJWT** y **Bcrypt**.
+Sistema de autenticación completo y seguro desarrollado en Python (**Flask**, **SQLAlchemy** con SQLite, **PyJWT**, **Bcrypt** y **Cryptography**) y Frontend con **Web Crypto API**.
+
+---
+
+## 🔒 Arquitectura de Seguridad y Cifrado
+
+### 1. Cifrado Extremo a Extremo de Payloads (E2EE HTTP)
+* **Algoritmo**: **AES-256-GCM** (Galois/Counter Mode con nonce/IV aleatorio de 96 bits y etiqueta de autenticación de 128 bits).
+* **Derivación de Clave**: SHA-256 a partir de `PAYLOAD_SECRET_KEY` o `JWT_SECRET_KEY`.
+* **Transporte**: Todo el cuerpo de las peticiones (`POST /api/register`, `POST /api/login`, etc.) y de las respuestas HTTP viaja cifrado en un envoltorio Base64URL:
+  ```json
+  {
+    "encrypted_payload": "<iv_12bytes + ciphertext + auth_tag_16bytes_base64url>",
+    "encrypted": true,
+    "algorithm": "AES-256-GCM"
+  }
+  ```
+
+### 2. Tokens JWT con Claims Cifrados (Nested Encrypted JWT)
+* El payload del JWT no expone ningún dato del usuario en texto plano ni en Base64 legible.
+* Los datos de identidad (`id`, `email`, `username`, `name`, `lastname`) se cifran con AES-256-GCM dentro del claim `enc_data`.
+* El token completo es firmado criptográficamente con **HS256** para garantizar integridad y no-repudio.
 
 ---
 
@@ -10,11 +31,17 @@ Backend en Python construido con **Flask**, **SQLAlchemy** (ORM con SQLite), **P
 jwt-python-test/
 ├── backend/
 │   ├── db.py              # SQLite y Modelo ORM 'Usuario' (tabla: 'usuarios')
-│   ├── token_builder.py   # Generación y decodificación de tokens JWT
+│   ├── crypto_service.py  # Cifrado/descifrado AES-256-GCM y derivación de clave
+│   ├── token_builder.py   # Generación y validación de tokens JWT con claims cifrados
 │   ├── email_service.py   # Servicio para envío de código de recuperación por email
-│   ├── controller.py      # Endpoints: register, login, request-reset-code, reset-password
-│   └── server.py          # Servidor Flask y activación de la API
-├── requirements.txt       # Dependencias
+│   ├── controller.py      # Endpoints con soporte de payloads cifrados
+│   └── server.py          # Servidor Flask y servicio de frontend estático
+├── frontend/
+│   ├── index.html         # Interfaz web interactiva con inspector de cifrado
+│   ├── styles.css         # Estilos modernos y dark mode
+│   ├── crypto.js          # Motor Web Crypto API (AES-256-GCM en el navegador)
+│   └── app.js             # Lógica cliente y conexión segura con la API
+├── requirements.txt       # Dependencias del backend
 └── README.md
 ```
 
@@ -28,14 +55,9 @@ jwt-python-test/
 pip install -r requirements.txt
 ```
 
-O individualmente:
-```bash
-pip install sqlalchemy pyjwt bcrypt flask flask-cors
-```
-
 ### 2. Iniciar el servidor
 
-Desde la raíz:
+Desde la raíz del proyecto:
 ```bash
 python backend/server.py
 ```
@@ -44,16 +66,46 @@ O dentro de `backend/`:
 python server.py
 ```
 
-El servidor iniciará en `http://localhost:5000`.
+Abre tu navegador en: `http://localhost:5000`
 
 ---
 
 ## 📌 Endpoints de la API
 
+### 0. **Estado Criptográfico**
+- **Método**: `GET`
+- **Ruta**: `/api/crypto/info`
+- **Respuesta (200 OK)**:
+  ```json
+  {
+    "status": "active",
+    "payload_encryption": {
+      "algorithm": "AES-256-GCM",
+      "key_size_bits": 256,
+      "iv_size_bits": 96,
+      "tag_size_bits": 128,
+      "encoding": "Base64URL"
+    },
+    "token_encryption": {
+      "type": "Nested Encrypted JWT",
+      "claims_encryption": "AES-256-GCM",
+      "token_signature": "HS256"
+    }
+  }
+  ```
+
+---
+
 ### 1. **Registro de Usuario**
 - **Método**: `POST`
 - **Ruta**: `/api/register`
-- **Body (JSON)**:
+- **Cuerpo Cifrado E2EE**:
+  ```json
+  {
+    "encrypted_payload": "<AES_256_GCM_ENCRYPTED_BASE64>"
+  }
+  ```
+- *Contenido plano subyacente*:
   ```json
   {
     "email": "usuario@ejemplo.com",
@@ -63,38 +115,30 @@ El servidor iniciará en `http://localhost:5000`.
     "password": "miPasswordSeguro"
   }
   ```
-- **Respuesta (201 Created)**:
-  ```json
-  {
-    "message": "Usuario registrado exitosamente",
-    "user": {
-      "id": "uuid-generado",
-      "email": "usuario@ejemplo.com",
-      "username": "usuario123",
-      "name": "Juan",
-      "lastname": "Pérez"
-    }
-  }
-  ```
 
 ---
 
 ### 2. **Inicio de Sesión (Login)**
 - **Método**: `POST`
 - **Ruta**: `/api/login`
-- **Body (JSON)**:
+- **Cuerpo Cifrado E2EE**:
   ```json
   {
-    "email": "usuario@ejemplo.com",
-    "password": "miPasswordSeguro"
+    "encrypted_payload": "<AES_256_GCM_ENCRYPTED_BASE64>"
   }
   ```
-  *(También se puede enviar `"username": "usuario123"` en lugar de `email`)*
-- **Respuesta (200 OK)**:
+- **Respuesta Cifrada (200 OK)**:
+  ```json
+  {
+    "encrypted_payload": "<AES_256_GCM_ENCRYPTED_BASE64>",
+    "encrypted": true
+  }
+  ```
+- *Contenido descifrado recibido por el cliente*:
   ```json
   {
     "message": "Inicio de sesión exitoso",
-    "token": "<JWT_TOKEN>",
+    "token": "<JWT_TOKEN_CON_CLAIMS_CIFRADOS>",
     "user": {
       "id": "uuid-generado",
       "email": "usuario@ejemplo.com",
@@ -104,51 +148,9 @@ El servidor iniciará en `http://localhost:5000`.
     }
   }
   ```
-- **Payload del Token JWT**: Contiene la información del usuario (`id`, `email`, `username`, `name`, `lastname`) sin incluir la contraseña.
 
 ---
 
-### 3. **Paso 1: Solicitar Código de Recuperación de Contraseña**
-- **Método**: `POST`
-- **Ruta**: `/api/request-reset-code` (o `/api/forgot-password`)
-- **Body (JSON)**:
-  ```json
-  {
-    "email": "usuario@ejemplo.com"
-  }
-  ```
-- **Respuesta (200 OK)**:
-  ```json
-  {
-    "message": "Código de recuperación enviado al correo asociado",
-    "email": "usuario@ejemplo.com"
-  }
-  ```
-- *Nota*: En desarrollo se muestra el código de 6 dígitos en la consola del servidor. Si defines variables de entorno SMTP (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`), se enviará el correo real.
-
----
-
-### 4. **Paso 2: Restablecer Contraseña con Código**
-- **Método**: `POST` o `PUT`
-- **Ruta**: `/api/reset-password`
-- **Body (JSON)**:
-  ```json
-  {
-    "email": "usuario@ejemplo.com",
-    "code": "123456",
-    "new_password": "miNuevaPassword123"
-  }
-  ```
-- **Respuesta (200 OK)**:
-  ```json
-  {
-    "message": "Contraseña restablecida exitosamente",
-    "user": {
-      "id": "uuid-generado",
-      "email": "usuario@ejemplo.com",
-      "username": "usuario123",
-      "name": "Juan",
-      "lastname": "Pérez"
-    }
-  }
-  ```
+### 3. **Recuperación de Contraseña**
+- **Paso 1 (Solicitar Código)**: `POST /api/request-reset-code`
+- **Paso 2 (Confirmar Código y Nueva Contraseña)**: `POST /api/reset-password`
